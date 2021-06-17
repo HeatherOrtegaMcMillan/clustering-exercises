@@ -34,30 +34,30 @@ def get_zillow_data():
     This function reads in Zillow data from Codeup database, writes data to
     a csv file if a local file does not exist, and returns a df.
     '''
-    sql_query = '''
+    sql_query = """
                 SELECT parcelid, airconditioningtypeid, airconditioningdesc, architecturalstyletypeid, architecturalstyledesc,
-                    	bathroomcnt, bedroomcnt, buildingclasstypeid, buildingclassdesc, buildingqualitytypeid,
-                    	decktypeid, calculatedfinishedsquarefeet, fips, fireplacecnt, fireplaceflag, garagecarcnt, garagetotalsqft,
-                    	hashottuborspa, latitude, longitude, lotsizesquarefeet, poolcnt, poolsizesum, propertycountylandusecode,
-                    	propertylandusetypeid, propertylandusedesc, propertyzoningdesc, rawcensustractandblock, 
-                    	regionidcity, regionidcounty, regionidneighborhood, roomcnt, threequarterbathnbr, typeconstructiontypeid, typeconstructiondesc, 	unitcnt, yearbuilt, numberofstories, structuretaxvaluedollarcnt, taxvaluedollarcnt, assessmentyear, 
-                    	landtaxvaluedollarcnt, taxamount, censustractandblock, logerror, transactiondate 
-                    FROM properties_2017 AS p
-                    JOIN predictions_2017 USING (parcelid)
-                    INNER JOIN (SELECT parcelid, MAX(`transactiondate`) AS transactiondate
-                    				FROM predictions_2017
-                    				GROUP BY parcelid) 
-                    			AS t USING (parcelid, transactiondate)
-                    LEFT JOIN airconditioningtype USING (airconditioningtypeid)
-                    LEFT JOIN architecturalstyletype USING (architecturalstyletypeid)
-                    LEFT JOIN buildingclasstype USING (buildingclasstypeid)
-                    LEFT JOIN heatingorsystemtype USING (heatingorsystemtypeid)
-                    LEFT JOIN propertylandusetype USING (propertylandusetypeid)
-                    LEFT JOIN storytype USING (storytypeid)
-                    LEFT JOIN typeconstructiontype USING (typeconstructiontypeid)
-                    WHERE latitude IS NOT NULL AND longitude IS NOT NULL 
-                    	AND transactiondate LIKE '2017%';
-                '''
+                bathroomcnt, bedroomcnt, buildingclasstypeid, buildingclassdesc, buildingqualitytypeid,
+                decktypeid, calculatedfinishedsquarefeet, fips, fireplacecnt, fireplaceflag, garagecarcnt, garagetotalsqft,
+                hashottuborspa, latitude, longitude, lotsizesquarefeet, poolcnt, poolsizesum, propertycountylandusecode,
+                propertylandusetypeid, propertylandusedesc, propertyzoningdesc, rawcensustractandblock, 
+                regionidcity, regionidcounty, regionidneighborhood, roomcnt, threequarterbathnbr, typeconstructiontypeid, typeconstructiondesc, unitcnt, yearbuilt, numberofstories, structuretaxvaluedollarcnt, taxvaluedollarcnt, assessmentyear, 
+                landtaxvaluedollarcnt, taxamount, censustractandblock, logerror, transactiondate 
+                FROM properties_2017 AS p
+                JOIN predictions_2017 USING (parcelid)
+                INNER JOIN (SELECT parcelid, MAX(transactiondate) AS transactiondate
+                FROM predictions_2017
+                GROUP BY parcelid) 
+                AS t USING (parcelid, transactiondate)
+                LEFT JOIN airconditioningtype USING (airconditioningtypeid)
+                LEFT JOIN architecturalstyletype USING (architecturalstyletypeid)
+                LEFT JOIN buildingclasstype USING (buildingclasstypeid)
+                LEFT JOIN heatingorsystemtype USING (heatingorsystemtypeid)
+                LEFT JOIN propertylandusetype USING (propertylandusetypeid)
+                LEFT JOIN storytype USING (storytypeid)
+                LEFT JOIN typeconstructiontype USING (typeconstructiontypeid)
+                WHERE latitude IS NOT NULL AND longitude IS NOT NULL 
+                AND transactiondate LIKE '2017%%';
+                """
     if os.path.isfile('zillow_data.csv'):
         
         # If csv file exists read in data from csv file.
@@ -109,3 +109,33 @@ def missing_values_table(df):
         
         # Return the dataframe with missing information
     return mis_val_table_ren_columns
+
+
+####################################### Overview Function #######################################
+def overview(df, thresh = 10):
+    '''
+    This function takes in a dataframe and prints out useful things about each column.
+    Unique values, value counts for columns less than 10 (can be adjusted with optional argument thresh)
+    Whether or not the row has nulls
+    '''
+    # create list of columns
+    col_list = df.columns
+    
+    # loop through column list
+    for col in col_list:
+        # seperator using column name
+        print(f'============== {col} ==============')
+        
+        # print out unique values for each column
+        print(f'# Unique Vals: {df[col].nunique()}')
+        
+        # if number of things is under or equal to the threshold  print a value counts
+        if df[col].nunique() <= thresh:
+            print(df[col].value_counts(dropna = False))
+            
+        # if the number is less than 150 and not an object, bin it and do value counts
+        elif (df[col].nunique() < 150) and df[col].dtype != 'object' :
+            print(df[col].value_counts(bins = 10, dropna=False))
+        
+        # Space for readability 
+        print('')
