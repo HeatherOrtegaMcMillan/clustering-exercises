@@ -110,6 +110,20 @@ def missing_values_table(df):
         # Return the dataframe with missing information
     return mis_val_table_ren_columns
 
+####################################### Nulls by Row #######################################
+
+def nulls_by_row(df):
+    '''
+    Function takes in dataframe and outputs table showing you how many rows have percentages
+    of values missing
+    '''
+    num_missing = df.isnull().sum(axis=1)
+    prcnt_miss = round(num_missing / df.shape[1] * 100, 2)
+    rows_missing = pd.DataFrame({'num_cols_missing': num_missing, 'percent_cols_missing': prcnt_miss})\
+    .reset_index()\
+    .groupby(['num_cols_missing', 'percent_cols_missing']).count()\
+    .rename(index=str, columns={'index': 'num_rows'}).reset_index()
+    return rows_missing
 
 ####################################### Overview Function #######################################
 def overview(df, thresh = 10):
@@ -139,3 +153,156 @@ def overview(df, thresh = 10):
         
         # Space for readability 
         print('')
+    
+########################### prepping functions ###########################
+
+def single_homes(df):
+    '''
+    Function takes in zillow dataframe and outputs dataframe with only data for single unit homes.
+    Single unit home defined as any of the following 
+    'Single Family Residential', 'Condominium', 'Townhouse', 'Manufactured, Modular, Prefabricated Homes', 'Mobile Home'
+    Home must also have unit count of 1 or NaN
+    '''
+    # define single home descriptions
+    single_homes = ['Single Family Residential', 'Condominium', 'Townhouse', 'Manufactured, Modular, Prefabricated Homes', 'Mobile Home']
+    
+    # If the property land use description is the in the single homes list keep it
+    df = df[df['propertylandusedesc'].isin(single_homes)]
+    
+    # create mask if unit count is 1 or NaN
+    unitcnt_mask = (df['unitcnt'] == 1) | (df['unitcnt'].isnull())
+    
+    # apply mask to dataframe
+    df = df[unitcnt_mask]
+    
+    return df
+
+
+
+def pool_party(df):
+    '''
+    This function fixes the NaNs in the pool column and fills them with 0s.
+    Essentially turning this into a has_pool column
+    '''
+    df['poolcnt'] = df.poolcnt.fillna(value=0)
+
+    return df
+
+
+def unitcnt_filler(df):
+    '''
+    Function fills in nans in the unit count because we're only dealing with single family homes now
+    '''
+    df['unitcnt'] = df.unitcnt.fillna(value=1)
+    
+    return df
+
+
+def drop_missing(df, min_col_percent= 0.75, min_row_percent = 0.75):
+    '''
+    This columns takes in a dataframe and outputs one with nulls dropped
+    The minimum col percent is how many null values you would like to have in your columns for them to stay
+    min_row_percent will be how many values must be not null in order to keep that row
+    '''
+    # calculate columns threshold (any columsn that have more nulls than this, dropped)
+    col_thresh = int(round(min_col_percent*df.shape[0]))
+    
+    # drop coulmns 
+    df = df.dropna(axis=1, thresh=col_thresh)
+    
+    # calculate row threshold 
+    row_thresh = int(round(min_row_percent * df.shape[1]))
+    
+    # drop rows
+    
+    df = df.dropna(axis=0, thresh=row_thresh)
+    
+    return df
+
+
+def drop_rows_low_percent(df):
+    '''
+    Finds columns with missing values less than 1 percent. Drops all rows with missing values in those rows.
+    '''
+    
+    has_percent_below_one = ((df.isnull().sum() / df.shape[0]) < .01)
+    
+    one_percenters = list(has_percent_below_one[has_percent_below_one == True].index)
+    
+    df = df.dropna(axis=0, subset=one_percenters)
+    
+    return df
+
+
+def drop_unneeded_cols(df, unneeded_cols = ['lotsizesquarefeet', 'regionidcity']):
+    '''
+    This function takes in a dataframe and a list of unneeded columns (default is for zillow data)
+    Returns dataframe with those columns dropped
+    '''
+    df = df.drop(columns = unneeded_cols)
+    
+    return df
+
+
+
+def cali_counties(df):
+    '''
+    This function takes in the zillow dataframe, uses the fips column and a dictionary of counties
+    and adds a column called county with where the house is located
+    returns a dataframe with the column attached 
+    '''
+    # make dictionary with fips values and county names
+    counties = {6037: 'LA', 6059: 'Orange', 6111: 'Ventura'}
+
+    # use .replace to create an new column called county
+    df['county'] = df.fips.replace(counties)
+
+    return df
+
+
+def banana_split(df):
+    '''
+    args: df
+    This function take in the telco_churn data data acquired by aquire.py, get_telco_data(),
+    performs a split.
+    Returns train, validate, and test dfs.
+    '''
+    train_validate, test = train_test_split(df, test_size=.2, 
+                                        random_state=713)
+    train, validate = train_test_split(train_validate, test_size=.3, 
+                                   random_state=713)
+    print(f'train --> {train.shape}')
+    print(f'validate --> {validate.shape}')
+    print(f'test --> {test.shape}')
+    return train, validate, test
+
+
+
+################################### Wrangle Function ###################################
+
+def wrangle_zillow():
+    '''
+
+    This function takes care of acquiring and cleaning up of the dataframe.
+    Uses functions defined in wrangle.py to acquire and prepare the Zillow dataframe
+
+    '''
+    df = get_zillow_data()
+
+    df = single_homes(df)
+
+    df = pool_party(df)
+
+    df = unitcnt_filler(df)
+
+    df = drop_missing(df)
+
+    df = drop_rows_low_percent(df)
+
+    df = drop_unneeded_cols(df)
+
+    df = cali_counties(df)
+
+    train, validate, test = banana_split(df)
+
+    return train, validate, test
