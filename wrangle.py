@@ -154,7 +154,7 @@ def overview(df, thresh = 10):
         # Space for readability 
         print('')
     
-########################### prepping functions ###########################
+##################################### Prepping Functions #####################################
 
 def single_homes(df):
     '''
@@ -177,7 +177,7 @@ def single_homes(df):
     
     return df
 
-
+#================
 
 def pool_party(df):
     '''
@@ -188,6 +188,7 @@ def pool_party(df):
 
     return df
 
+#================
 
 def unitcnt_filler(df):
     '''
@@ -197,6 +198,7 @@ def unitcnt_filler(df):
     
     return df
 
+#================
 
 def drop_missing(df, min_col_percent= 0.75, min_row_percent = 0.75):
     '''
@@ -219,6 +221,7 @@ def drop_missing(df, min_col_percent= 0.75, min_row_percent = 0.75):
     
     return df
 
+#================
 
 def drop_rows_low_percent(df):
     '''
@@ -233,6 +236,7 @@ def drop_rows_low_percent(df):
     
     return df
 
+#================
 
 def drop_unneeded_cols(df, unneeded_cols = ['lotsizesquarefeet', 'regionidcity']):
     '''
@@ -243,7 +247,7 @@ def drop_unneeded_cols(df, unneeded_cols = ['lotsizesquarefeet', 'regionidcity']
     
     return df
 
-
+#================
 
 def cali_counties(df):
     '''
@@ -259,6 +263,7 @@ def cali_counties(df):
 
     return df
 
+#================
 
 def banana_split(df):
     '''
@@ -276,9 +281,44 @@ def banana_split(df):
     print(f'test --> {test.shape}')
     return train, validate, test
 
+#================
 
+def remove_outliers(df, k, col_list):
+    '''
+    This function takes in a dataframe, k value, and column list and 
+    k = number times interquartile range you would like to remove
+    col_list = names of columns you want outliers removed from
+    removes outliers from a list of columns in a dataframe 
+    and return that dataframe
+    '''
+    
+    for col in col_list:
 
-################################### Wrangle Function ###################################
+        q1, q3 = df[f'{col}'].quantile([.25, .75])  # get quartiles
+        
+        iqr = q3 - q1   # calculate interquartile range
+        
+        upper_bound = q3 + k * iqr   # get upper bound
+        lower_bound = q1 - k * iqr   # get lower bound
+
+        # return dataframe without outliers
+        
+        df = df[(df[f'{col}'] > lower_bound) & (df[f'{col}'] < upper_bound)]
+        
+    return df
+
+#================
+
+def date_to_datetime(df, date_col = 'transactiondate'):
+    '''
+    This function takes in a dataframe and the name of a column that needs to be turned into 
+    a pandas datetime object. Default is for zillow database. transaction_date
+    '''
+    df[date_col] = pd.to_datetime(df[date_col])
+
+    return df
+
+######################################## Wrangle Function ########################################
 
 def wrangle_zillow():
     '''
@@ -301,7 +341,11 @@ def wrangle_zillow():
 
     df = drop_unneeded_cols(df)
 
+    df = remove_outliers(df, k = 1.5, col_list= ['calculatedfinishedsquarefeet', 'bedroomcnt', 'bathroomcnt'])
+
     df = cali_counties(df)
+
+    df = date_to_datetime(df)
 
     train, validate, test = banana_split(df)
 
