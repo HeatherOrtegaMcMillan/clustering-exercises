@@ -1,12 +1,3 @@
-#~#~#~#~#~#~# Zillow Clustering Wrangling Functions #~#~#~#~#~#~#
-
-#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~#~
-
-################ Imports ################
-import pandas as pd
-import numpy as np
-from env import host, password, user
-import os
 import scipy.stats as stats
 
 from sklearn.model_selection import train_test_split
